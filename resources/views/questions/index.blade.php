@@ -1,0 +1,56 @@
+@extends('layouts.app')
+
+@section('content')
+    <a href="{{ route('questions.create') }}" class="btn btn-primary mb-3">Добавить вопрос</a>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Вопрос</th>
+                <th scope="col">Ключ</th>
+                <th scope="col">Дата создания</th>
+                <th scope="col">Дата обновления</th>
+
+                <th scope="col">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ($questions as $question)
+                <tr>
+                    <th scope="row">{{ $question->id }}</th>
+                    <td>{{ $question->question_text }}</td>
+                    <td>{{ $question->unique_key }}</td>
+                    <td>{{ $question->created_at }}</td>
+                    <td>{{ $question->updated_at }}</td>
+                    <td>
+                        <!-- Кнопка "Редактировать" -->
+                        <a href="{{ route('questions.edit', $question->id) }}"
+                            class="btn btn-warning btn-sm">Редактировать</a>
+
+                        <!-- Кнопка "Удалить" -->
+                        <form action="{{ route('questions.destroy', $question->id) }}" method="POST"
+                            style="display: inline-block;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                        </form>
+
+                        <a href="{{ route('questions.show', $question->id) }}" class="btn btn-info btn-sm">Посмотреть</a>
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.btn-danger').forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    if (!confirm('Вы уверены, что хотите удалить этот вопрос?')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+@endsection
