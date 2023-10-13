@@ -1,6 +1,13 @@
 @extends('layouts.app')
 
 @section('content')
+
+    <!-- Проверяем, есть ли флэш-сообщение в сессии -->
+    @if(session('message'))
+        <div class="alert alert-success">
+            {{ session('message') }}
+        </div>
+    @endif
     <h3>Введите ключ для доступа к тесту</h3>
 
     <form action="/questions/key" method="GET">

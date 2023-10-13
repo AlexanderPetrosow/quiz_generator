@@ -11,7 +11,9 @@
                 <th scope="col">Ключ</th>
                 <th scope="col">Дата создания</th>
                 <th scope="col">Дата обновления</th>
-
+                @if($isAdmin) <!-- Если пользователь администратор -->
+                <th scope="col">Имя создателя</th>
+                @endif
                 <th scope="col">Действия</th>
             </tr>
         </thead>
@@ -23,12 +25,15 @@
                     <td>{{ $question->unique_key }}</td>
                     <td>{{ $question->created_at }}</td>
                     <td>{{ $question->updated_at }}</td>
+                    @if($isAdmin) <!-- Если пользователь администратор -->
+                    <td>id:{{ optional($question->user)->id }} {{ optional($question->user)->name }} {{ optional($question->user)->surname }} </td>
+                  
+                    @endif <!-- Поле создателя -->
+                 
                     <td>
-                        <!-- Кнопка "Редактировать" -->
                         <a href="{{ route('questions.edit', $question->id) }}"
                             class="btn btn-warning btn-sm">Редактировать</a>
 
-                        <!-- Кнопка "Удалить" -->
                         <form action="{{ route('questions.destroy', $question->id) }}" method="POST"
                             style="display: inline-block;">
                             @csrf

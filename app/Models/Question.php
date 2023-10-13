@@ -8,9 +8,17 @@ use Illuminate\Database\Eloquent\Model;
 class Question extends Model
 {
     use HasFactory;
-    public function answers() {
+
+    protected $fillable = ['question_text', 'answer_type', 'is_anonymous'];
+
+    public function answers()
+    {
         return $this->hasMany(Answer::class);
     }
-}
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+}
 

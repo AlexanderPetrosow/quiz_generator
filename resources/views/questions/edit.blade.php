@@ -1,6 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     <h3>Редактировать вопрос</h3>
 
     <form action="{{ route('questions.update', $question->id) }}" method="POST">
@@ -19,8 +28,8 @@
                     <label class="form-label">Ответ</label>
                     <input type="text" class="form-control" name="answers[{{ $answer->id }}]"
                         value="{{ $answer->answer_text }}">
-                        <input type="number" class="form-control mt-2" name="order_ids[{{ $answer->id }}]" value="{{ $answer->order_id }}" placeholder="Порядковый номер">
-
+                    <input type="number" class="form-control mt-2" name="order_ids[{{ $answer->id }}]"
+                        value="{{ $answer->order_id }}" placeholder="Порядковый номер">
                     <input type="checkbox" name="correct_answers[{{ $answer->id }}]" value="1"
                         @if ($answer->is_correct) checked @endif> Это правильный ответ?
                 </div>
@@ -54,8 +63,19 @@
             newCheckbox.name = 'new_correct_answers[]';
             newCheckbox.value = '1';
 
+            const orderLabel = document.createElement('label');
+            orderLabel.innerText = 'Порядковый номер';
+            orderLabel.classList.add('mt-2');
+
+            const orderInput = document.createElement('input');
+            orderInput.type = 'number';
+            orderInput.name = 'new_order_ids[]';
+            orderInput.classList.add('form-control', 'mt-2');
+
             newAnswerDiv.appendChild(newLabel);
             newAnswerDiv.appendChild(newInput);
+            newAnswerDiv.appendChild(orderLabel);
+            newAnswerDiv.appendChild(orderInput);
             newAnswerDiv.appendChild(newCheckbox);
             newAnswerDiv.appendChild(newCheckboxLabel);
             answersContainer.appendChild(newAnswerDiv);
