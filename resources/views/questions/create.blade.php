@@ -21,6 +21,7 @@
                 <input type="text" class="form-control" id="question_text" name="question_text">
             </div>
             <div class="mb-3">
+                <input type="hidden" id="hidden_answer_type" name="answer_type" value="radio">
                 <label for="answer_type" class="form-label">Тип ответа</label>
                 <select id="answer_type" name="answer_type" class="form-control">
                     <option value="radio">Радиокнопка (один ответ)</option>
@@ -50,6 +51,9 @@
                 checkboxes.forEach(function(checkbox) {
                     checkbox.type = isRadio ? 'radio' : 'checkbox';
                 });
+
+                // обновление значения скрытого поля
+                document.getElementById('hidden_answer_type').value = this.value;
             });
 
             document.getElementById('addAnswer').addEventListener('click', function() {
@@ -82,7 +86,8 @@
 
                 const newCheckbox = document.createElement('input');
                 newCheckbox.type = document.getElementById('answer_type').value === 'radio' ? 'radio' : 'checkbox';
-                newCheckbox.name = 'correct_answers[' + newAnswerNumber + ']';
+                newCheckbox.name = document.getElementById('answer_type').value === 'radio' ? 'correct_answer' : 'correct_answers[' + newAnswerNumber + ']';
+
                 newCheckbox.value = '1';
 
                 newAnswerDiv.appendChild(newLabel);

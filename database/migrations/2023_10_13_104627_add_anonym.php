@@ -25,7 +25,10 @@ class AddAnonym extends Migration
      * @return void
      */
     public function down()
-    {
-        //
-    }
+{
+    Schema::table('questions', function (Blueprint $table) {
+        $table->dropColumn('is_anonymous');
+        $table->dropColumn('answer_type');
+    });
+}
 }

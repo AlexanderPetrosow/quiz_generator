@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Question;
 use App\Models\Answer;
+use App\Models\User;
 use App\Models\UserAnswer;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Carbon\Carbon;
+
 
 
 class QuestionController extends Controller
@@ -40,10 +44,14 @@ class QuestionController extends Controller
             'answers' => 'required|array|min:1',
             'answers.*' => 'required|string|max:255',
             'correct_answers.*' => 'required|boolean',
+            'is_anonymous' => 'sometimes|boolean',
+            'answer_type' => 'required|in:radio,checkbox',
         ]);
 
         $question = new Question;
         $question->question_text = $request->input('question_text');
+        $question->is_anonymous = $request->input('is_anonymous', false);  // Сохраняем значение чекбокса
+        $question->answer_type = $request->input('answer_type'); // Сохранить тип ответа
         $question->unique_key = substr(md5(uniqid(rand(), true)), 0, 10);  // генерация ключа
         $question->user_id = auth()->id();
         $question->save();
@@ -64,10 +72,16 @@ class QuestionController extends Controller
         return redirect('/questions');
     }
 
+
+
     public function show(Question $question)
     {
-        return view('questions.show', compact('question'));
+        return view('dashboards.dashboard', [
+            'question' => $question,
+            'uniqueKey' => $question->unique_key 
+        ]);
     }
+    
 
 
 
@@ -122,8 +136,6 @@ class QuestionController extends Controller
 
 
 
-
-
     public function destroy(Question $question)
     {
         $this->authorizeUserAction($question);
@@ -142,6 +154,9 @@ class QuestionController extends Controller
     {
         return view('questions.enterKey');
     }
+
+
+    
     public function showByKey(Request $request)
     {
         $unique_key = $request->input('unique_key');
@@ -156,38 +171,93 @@ class QuestionController extends Controller
 
 
     public function answer(Request $request, Question $question)
-    {
-        $selectedAnswers = $request->input('selected_answers', []);
+{
+    $selectedAnswers = $request->input('selected_answers', []);
 
-        foreach ($selectedAnswers as $selectedAnswerId) {
-            UserAnswer::create([
-                'user_id' => auth()->user()->id,
-                'question_id' => $question->id,
-                'answer_id' => $selectedAnswerId
+    // Если опрос анонимный
+    if ($question->is_anonymous) {
+        $userId = User::where('name', 'Anonym')->firstOrCreate(['name' => 'Anonym'])->id;
+    }
+    // Если опрос не анонимный и пользователь авторизован
+    else if (auth()->check()) {
+        $userId = auth()->user()->id;
+    }
+    // Если опрос не анонимный и пользователь не авторизован
+    else {
+        // Получаем имя из запроса
+        $name = $request->input('name');
+
+        // Ищем пользователя по имени
+        $user = User::where('name', $name)->first();
+
+        // Если пользователя с таким именем нет, создаем новую запись
+        if (!$user) {
+            $generatedPassword = bcrypt(Str::random(10));  // Генерация случайного пароля
+        
+            $user = User::create([
+                'name' => $name,
+                'password' => $generatedPassword,
+                // Остальные поля можете заполнить по умолчанию или на основе других данных
             ]);
         }
 
-        return redirect()->route('questions.enterKey')->with('message', 'Спасибо за ответ!');
+        // // Авторизуем пользователя
+        // auth()->login($user);
+
+        $userId = $user->id;
     }
 
-
-
-    public function getAnswersData(Question $question)
-    {
-        $answers = $question->answers;
-
-        $data = [];
-        foreach ($answers as $answer) {
-            $data[] = [
-                'answer_text' => $answer->answer_text,
-                'count' => UserAnswer::where('answer_id', $answer->id)
-                    ->whereDate('created_at', now()->toDateString())
-                    ->count()
-            ];
-        }
-
-        return response()->json($data);
+    // Сохраняем ответы пользователя
+    foreach ($selectedAnswers as $selectedAnswerId) {
+        UserAnswer::create([
+            'user_id' => $userId,
+            'question_id' => $question->id,
+            'answer_id' => $selectedAnswerId
+        ]);
     }
+
+    return redirect()->route('questions.enterKey')->with('message', 'Спасибо за ответ!');
+}
+
+
+
+
+
+public function getAnswersData(Question $question)
+{
+    $answers = $question->answers;
+
+    $dataForChart = [];
+    foreach ($answers as $answer) {
+        $dataForChart[] = [
+            'answer_text' => $answer->answer_text,
+            'count' => UserAnswer::where('answer_id', $answer->id)
+                ->whereDate('created_at', now())
+                ->count()
+        ];
+    }
+
+    // Получение ответов за текущий день
+    $today = Carbon::today();
+    $answersToday = UserAnswer::whereHas('answer', function ($query) use ($question) {
+        $query->where('question_id', $question->id);
+    })->whereDate('created_at', $today)->get();
+
+    $respondentsData = $answersToday->map(function ($userAnswer) {
+        return [
+            'user' => optional($userAnswer->user)->name,  // предположим, что у вас есть связь с моделью User
+            'answer' => $userAnswer->answer->answer_text,
+            'time' => $userAnswer->created_at->toTimeString(),
+        ];
+    });
+
+    return response()->json([
+        'chartData' => $dataForChart,
+        'respondentsData' => $respondentsData,
+    ]);
+}
+
+
 
 
     public function dashboard($uniqueKey)
@@ -203,6 +273,24 @@ class QuestionController extends Controller
 
 
 
+    public function generateQRCode($unique_key)
+    {
+        $question = Question::where('unique_key', $unique_key)->firstOrFail();
+        
+        $url = route('questions.showByKey', ['unique_key' => $question->unique_key]); 
+    
+        $qrImage = QrCode::format('png')->size(300)->generate($url);
+    
+        return response($qrImage)->header('Content-Type', 'image/png');
+    }
+    
+    
+
+    
+    
+
+
+    
 
 
     private function authorizeUserAction(Question $question)
